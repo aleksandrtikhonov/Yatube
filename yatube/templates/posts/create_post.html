@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load user_filters %}
+{%block title %} 
+
+{% if is_edit %}
+  Редактировать пост
+{% else %}
+  Новый пост
+{% endif %}
+{%endblock%}
+
+{%block content%}
+<div class="card my-4">
+  {% if is_edit %}
+    <h5 class="card-header">Редактировать пост:</h5>
+  {% else %}
+    <h5 class="card-header">Новый пост:</h5>
+  {% endif %} 
+  
+  <div class="card-body">  
+  {% if is_edit %}
+    <form method="post" enctype="multipart/form-data" action="{% url 'posts:post_edit' post.id %}">
+    {% csrf_token %}   
+  {% else %}
+    <form method="post" enctype="multipart/form-data" action="{% url 'posts:post_create' %}">
+    {% csrf_token %}   
+  {% endif %}
+  <div class="form-group mb-2 form-control">
+          {% for field in form %}
+            <div class="form-group row my-3"
+              {% if field.field.required %} 
+                aria-required="true"
+              {% else %}
+                aria-required="false"
+              {% endif %}
+            >
+              <label for="{{ field.id_for_label }}">
+                {{ field.label }}
+                  {% if field.field.required %}
+                    <span class="required text-danger">*</span>
+                  {% endif %}
+              </label>
+              <div>
+              {{ field|addclass:'form-control' }}
+                {% if field.help_text %}
+                  <small id="{{ field.id_for_label }}-help" class="form-text text-muted">
+                    {{ field.help_text|safe }}
+                  </small>
+                {% endif %}
+              </div>
+            </div>
+          {% endfor %}
+  </div>
+    <button type="submit" class="btn btn-primary">
+      {% if is_edit %}
+        Сохранить
+      {% else %}
+        Добавить
+      {% endif %} 
+    </button>
+    </form>
+{%endblock%}        
