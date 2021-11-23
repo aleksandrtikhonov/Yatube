@@ -5,7 +5,7 @@ from django.core.cache import cache
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Group, Post
+from ..models import Follow, Group, Post
 
 User = get_user_model()
 
@@ -189,23 +189,39 @@ class PostsViewsTests(TestCase):
         test_object3 = self.authorized_client_author.get(index_page).content
         self.assertNotEqual(test_object1, test_object3)
 
-    def test_new_post_displayed_on_follow_page_for_follower(self):
+    def test_user_can_use_follow_service(self):
         self.authorized_follower.post(
             reverse('posts:profile_follow', args={self.user_author})
         )
-        form_data = {
-            'text': 'Пост для подписчиков',
-            'group': self.group.id
-        }
-        self.authorized_client_author.post(
-            reverse('posts:post_create'),
-            data=form_data,
-            follow=True
+        expected_author = self.follower.follower.first().author
+        self.assertEqual(self.user_author, expected_author)
+
+    def test_user_can_use_unfollow_service(self):
+        Follow.objects.create(user=self.follower, author=self.user_author)
+        self.authorized_follower.post(
+            reverse('posts:profile_unfollow', args={self.user_author})
+        )
+        self.assertIsNone(self.follower.follower.first())
+
+    def test_new_post_displayed_on_follow_page_for_follower(self):
+        Follow.objects.create(user=self.follower, author=self.user_author)
+        Post.objects.create(
+            author=self.user_author,
+            text='Пост для подписчиков(заодно и всех остальных)',
+            group=self.group
         )
         follow_index_page = reverse('posts:follow_index')
         response = self.authorized_follower.post(follow_index_page)
         self.assertEqual(
             response.context['page_obj'][0], self.user_author.posts.first()
         )
-        response = self.authorized_not_follower.post(follow_index_page)
+
+    def test_new_post_not_displayed_on_follow_page_for_not_follower(self):
+        Post.objects.create(
+            author=self.user_author,
+            text='Пост для подписчиков(заодно и всех остальных)',
+            group=self.group
+        )
+        follow_index_page = reverse('posts:follow_index')
+        response = self.authorized_follower.post(follow_index_page)
         self.assertEqual(len(response.context['page_obj']), 0)

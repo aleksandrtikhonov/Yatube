@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
-from django.urls import reverse
 
 from ..models import Group, Post
 
@@ -72,14 +71,6 @@ class PostsURLTests(TestCase):
             response, '/posts/1/',
             msg_prefix='Проверьте редактирование поста не для автора')
 
-    def test_authorized_can_create_post(self):
-        """Проверка возможности создания поста авторизованным пользователем"""
-        url = '/create/'
-        response = self.authorized_non_author.get(url)
-        self.assertEqual(
-            response.status_code, HTTPStatus.OK,
-            'Проверьте, что пользователь может создать пост')
-
     def test_author_can_edit_post(self):
         """Проверка возможности радактирования поста автором"""
         url = '/posts/1/edit/'
@@ -98,7 +89,8 @@ class PostsURLTests(TestCase):
             '/posts/1/': 'posts/post_detail.html',
             '/posts/1/edit/': 'posts/create_post.html',
             '/create/': 'posts/create_post.html',
-            '/unexisting_page/': 'core/404.html'
+            '/unexisting_page/': 'core/404.html',
+            '/follow/': 'posts/follow.html',
         }
         for url, template in templates_url_names.items():
             with self.subTest(url=url, template=template):
@@ -107,13 +99,20 @@ class PostsURLTests(TestCase):
                     response, template,
                     msg_prefix=f'Для {url} не используется шаблон  {template}')
 
-    def test_user_can_use_follow_service(self):
-        self.authorized_non_author.post(
-            reverse('posts:profile_follow', args={self.user_author})
-        )
-        expected_author = self.user_non_author.follower.first().author
-        self.assertEqual(self.user_author, expected_author)
-        self.authorized_non_author.post(
-            reverse('posts:profile_unfollow', args={self.user_author})
-        )
-        self.assertIsNone(self.user_non_author.follower.first())
+    def test_not_public_urls_responce_status_code(self):
+        urls_expected_codes = {
+            '/create/': HTTPStatus.OK,
+            '/follow/': HTTPStatus.OK,
+            '/profile/'f'{self.user_author}''/follow/': HTTPStatus.FOUND,
+            '/profile/'f'{self.user_author}''/unfollow/': HTTPStatus.FOUND,
+            '/posts/'f'{self.user_author.id}''/comment/': HTTPStatus.FOUND
+        }
+        for url, expected_code in urls_expected_codes.items():
+            with self.subTest(url=url, expected_code=expected_code):
+                response = self.authorized_non_author.get(url)
+                self.assertEqual(
+                    response.status_code, expected_code,
+                    f'ошибка при проверке {url}, '
+                    f'ожидается код ответа HTTP {expected_code}, '
+                    f'возвращается {response.status_code}'
+                )

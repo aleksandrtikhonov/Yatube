@@ -162,10 +162,10 @@ class PostsFormsTests(TestCase):
         )
         self.assertEqual(Comment.objects.count(), current_count_comments)
         next_page = reverse('posts:add_comment', args={self.post.id})
-        expected_url = (
+        expected_redirect_url = (
             reverse('users:login') + f'?next={next_page}'
         )
-        self.assertRedirects(response, expected_url)
+        self.assertRedirects(response, expected_redirect_url)
 
     def test_comment_is_added(self):
         form_data = {
