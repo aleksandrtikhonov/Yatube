@@ -190,18 +190,22 @@ class PostsViewsTests(TestCase):
         self.assertNotEqual(test_object1, test_object3)
 
     def test_user_can_use_follow_service(self):
+        current_count_follows = Follow.objects.count()
         self.authorized_follower.post(
             reverse('posts:profile_follow', args={self.user_author})
         )
         expected_author = self.follower.follower.first().author
         self.assertEqual(self.user_author, expected_author)
+        self.assertEqual(Follow.objects.count(), current_count_follows + 1)
 
     def test_user_can_use_unfollow_service(self):
+        current_count_follows = Follow.objects.count()
         Follow.objects.create(user=self.follower, author=self.user_author)
         self.authorized_follower.post(
             reverse('posts:profile_unfollow', args={self.user_author})
         )
         self.assertIsNone(self.follower.follower.first())
+        self.assertEqual(Follow.objects.count(), current_count_follows)
 
     def test_new_post_displayed_on_follow_page_for_follower(self):
         Follow.objects.create(user=self.follower, author=self.user_author)

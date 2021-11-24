@@ -168,6 +168,7 @@ class PostsFormsTests(TestCase):
         self.assertRedirects(response, expected_redirect_url)
 
     def test_comment_is_added(self):
+        current_count_comments = Comment.objects.count()
         form_data = {
             'text': 'кг/ам',
         }
@@ -182,3 +183,4 @@ class PostsFormsTests(TestCase):
         self.assertEqual(
             response.context['comments'][0].text, form_data['text']
         )
+        self.assertEqual(Comment.objects.count(), current_count_comments + 1)
